@@ -1,0 +1,41 @@
+version: 2
+
+sources:
+  - name: sdud
+    description: >
+      Medicaid State Drug Utilization Data (SDUD), from data.medicaid.gov. Covered outpatient
+      drugs paid by state Medicaid programs, by quarter. Amounts are before manufacturer rebates
+      and include dispensing fees. Public domain. Loaded by ingest/sdud.py.
+    schema: raw
+    loader: ingest/load_duckdb.py (DuckDB) or snowflake/load_raw.sql (Snowflake)
+    tables:
+      - name: quarterly
+        identifier: sdud_quarterly
+        description: >
+          One row per utilization type (FFSU fee-for-service, MCOU managed care) x state
+          (XX = national total) x NDC x year x quarter. CMS restates prior years, so the same key
+          can come back with new numbers: load with a merge, not an append.
+          https://data.medicaid.gov/dataset/61729e5a-7aa8-448c-8903-ba3e0cd0ea3c (2024).
+        columns:
+          - name: utilization_type
+            description: FFSU or MCOU.
+          - name: state
+            description: Two-letter state code; XX is the national total (do not double count it).
+          - name: ndc
+            description: 11-digit NDC as text.
+            data_tests:
+              - not_null
+          - name: labeler_code
+          - name: product_code
+          - name: package_size
+          - name: year
+          - name: quarter
+          - name: suppression_used
+            description: true when counts under 11 prescriptions were suppressed (amounts are blank).
+          - name: product_name
+          - name: units_reimbursed
+            description: Units in the NCPDP billing unit (EA, ML or GM), comparable to NADAC's pricing unit.
+          - name: number_of_prescriptions
+          - name: total_amount_reimbursed
+          - name: medicaid_amount_reimbursed
+          - name: non_medicaid_amount_reimbursed

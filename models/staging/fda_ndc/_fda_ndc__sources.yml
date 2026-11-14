@@ -1,0 +1,57 @@
+version: 2
+
+sources:
+  - name: fda_ndc
+    description: >
+      FDA National Drug Code Directory (product.txt and package.txt from ndctext.zip),
+      https://www.fda.gov/drugs/drug-approvals-and-databases/national-drug-code-directory.
+      Refreshed daily. NDCs are 10-digit hyphenated codes (4-4-2, 5-3-2 or 5-4-1). Loaded by ingest/fda_ndc.py.
+    schema: raw
+    loader: ingest/load_duckdb.py (DuckDB) or snowflake/load_raw.sql (Snowflake)
+    tables:
+      - name: product
+        identifier: fda_ndc_product
+        description: One row per listed product (labeler x product code x listing). Attributes change over time, which is why it gets a snapshot.
+        columns:
+          - name: productid
+            data_tests:
+              - not_null
+          - name: productndc
+            description: Labeler-product part of the NDC, e.g. 0003-0894.
+          - name: producttypename
+          - name: proprietaryname
+          - name: nonproprietaryname
+          - name: dosageformname
+          - name: routename
+          - name: startmarketingdate
+            description: YYYYMMDD.
+          - name: endmarketingdate
+            description: YYYYMMDD.
+          - name: marketingcategoryname
+            description: NDA, ANDA, BLA, NDA AUTHORIZED GENERIC, OTC MONOGRAPH ... (useful for brand vs generic).
+          - name: applicationnumber
+          - name: labelername
+          - name: substancename
+          - name: active_numerator_strength
+          - name: active_ingred_unit
+          - name: pharm_classes
+          - name: deaschedule
+          - name: ndc_exclude_flag
+          - name: listing_record_certified_through
+      - name: package
+        identifier: fda_ndc_package
+        description: One row per package NDC (the full 10-digit code). Join to product on productid.
+        columns:
+          - name: productid
+            data_tests:
+              - not_null
+          - name: productndc
+          - name: ndcpackagecode
+            description: 10-digit package NDC with hyphens, e.g. 0003-0894-21.
+            data_tests:
+              - not_null
+          - name: packagedescription
+          - name: startmarketingdate
+          - name: endmarketingdate
+          - name: ndc_exclude_flag
+          - name: sample_package

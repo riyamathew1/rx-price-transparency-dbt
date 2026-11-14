@@ -1,0 +1,70 @@
+version: 2
+
+sources:
+  - name: nadac
+    description: >
+      CMS National Average Drug Acquisition Cost (NADAC), from data.medicaid.gov.
+      A weekly survey-based estimate of what retail pharmacies pay to acquire a drug,
+      per pricing unit. Public domain. Loaded by ingest/nadac.py into RAW, all columns as text.
+    schema: raw
+    loader: ingest/load_duckdb.py (DuckDB) or snowflake/load_raw.sql (Snowflake)
+    config:
+      loaded_at_field: _loaded_at
+      freshness:
+        warn_after: {count: 8, period: day}
+        error_after: {count: 15, period: day}
+    tables:
+      - name: weekly
+        identifier: nadac_weekly
+        description: >
+          One row per NDC per weekly publication (`as_of_date`, always a Wednesday).
+          `effective_date` is when that rate started, so the same price repeats every week until it
+          changes: two time axes on every row (bitemporal). Yearly files 2013-present at
+          https://data.medicaid.gov/dataset/fbb83258-11c7-47f5-8b18-5f8e79f7e704 (2026).
+        columns:
+          - name: ndc_description
+            description: Drug name, strength and dosage form as written by CMS.
+          - name: ndc
+            description: 11-digit NDC (5-4-2) as text, no hyphens.
+            data_tests:
+              - not_null
+          - name: nadac_per_unit
+            description: NADAC price per pricing unit, in dollars.
+          - name: effective_date
+            description: MM/DD/YYYY. Date the rate became effective.
+          - name: pricing_unit
+            description: EA (each), ML (milliliter) or GM (gram).
+          - name: pharmacy_type_indicator
+            description: C/I = chain and independent pharmacies combined.
+          - name: otc
+            description: Y if over the counter, N if prescription.
+          - name: explanation_code
+            description: Comma-separated codes 1-10 explaining how the rate was set (see the NADAC methodology).
+          - name: classification_for_rate_setting
+            description: G = generic, B = brand, B-ANDA = brand approved on an ANDA, B-BIO = biosimilar brand.
+          - name: corresponding_generic_drug_nadac_per_unit
+            description: For brands, the NADAC of the equivalent generic, if one exists.
+          - name: corresponding_generic_drug_effective_date
+            description: MM/DD/YYYY. Effective date of the corresponding generic rate.
+          - name: as_of_date
+            description: MM/DD/YYYY. Weekly publication date.
+            data_tests:
+              - not_null
+          - name: _source_file
+            description: File the row was loaded from.
+          - name: _loaded_at
+            description: Load timestamp.
+
+      - name: first_time_rates
+        identifier: nadac_first_time_rates
+        description: >
+          "First Time NADAC Rates": the first published NADAC for new drugs and new generics,
+          with the reason (for example "New Drug/New Generic"). Use it to find first-generic
+          launch dates for the event study.
+          https://data.medicaid.gov/dataset/e3af839d-8175-5be0-b94e-4a302ed7a035
+        columns:
+          - name: drug_product
+            data_tests:
+              - not_null
+          - name: as_of_date
+            description: MM/DD/YYYY.

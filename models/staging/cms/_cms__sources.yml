@@ -1,0 +1,43 @@
+version: 2
+
+sources:
+  - name: cms_negotiation
+    description: >
+      CMS Medicare Drug Price Negotiation Program: "Selected Drug List and Negotiated Prices,
+      also known as Maximum Fair Prices in Statute" (CSV inside a ZIP), from
+      https://www.cms.gov/initiatives/medicare-prescription-drug-affordability/overview/medicare-drug-price-negotiation-program/selected-drugs-negotiated-prices.
+      Loaded by ingest/cms_mfp.py.
+    schema: raw
+    loader: ingest/load_duckdb.py (DuckDB) or snowflake/load_raw.sql (Snowflake)
+    tables:
+      - name: maximum_fair_prices
+        identifier: cms_mfp
+        description: >
+          One row per IPAY x NDC-11 x MFP effective period. IPAY 2026 = the first 10 drugs,
+          effective Jan 1, 2026. Prices are inflation-adjusted every Jan 1, so an NDC has several
+          rows (End Date closes the old one). Money columns are text like "$231.00".
+        columns:
+          - name: ipay
+            description: Initial price applicability year (2026, 2027, ...).
+            data_tests:
+              - not_null
+          - name: selected_drug_name
+          - name: active_ingredient_name_or_active_moiety_name
+          - name: ndc_9
+            description: Labeler-product NDC with hyphen (5-4).
+          - name: ndc_11
+            description: Package NDC, 5-4-2 with hyphens.
+          - name: xref_ndc_11
+          - name: hcpcs_code
+          - name: mfp_effective_date
+            description: MM/DD/YYYY.
+          - name: mfp_end_date
+            description: MM/DD/YYYY, blank when open-ended.
+          - name: single_mfp_per_30_des
+            description: Negotiated price per 30-day equivalent supply, e.g. "$231.00".
+          - name: ndc_9_mfp_per_unit_price
+            description: Negotiated price per unit, e.g. "$4.145072".
+          - name: hcpcs_code_dosage_price
+          - name: as_of_date
+          - name: type_of_update
+          - name: remarks

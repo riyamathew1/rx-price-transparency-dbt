@@ -1,0 +1,114 @@
+version: 2
+
+models:
+  - name: stg_nadac__weekly
+    description: >
+      NADAC weekly rows, typed and renamed. Grain: one row per `ndc_11` x `as_of_date`.
+      {{ doc('nadac_as_of_vs_effective') }}
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [ndc_11, as_of_date]
+      - dbt_utils.expression_is_true:
+          name: nadac_effective_date_on_or_before_as_of_date
+          arguments:
+            expression: "effective_date <= as_of_date"
+          config:
+            severity: warn
+      - dbt_utils.expression_is_true:
+          name: nadac_corresponding_generic_price_and_date_together
+          arguments:
+            expression: >
+              (corresponding_generic_nadac_per_unit is null)
+              = (corresponding_generic_effective_date is null)
+    columns:
+      - name: nadac_weekly_id
+        description: Surrogate key on (ndc_11, as_of_date).
+        data_tests:
+          - unique
+          - not_null
+      - name: ndc_11
+        description: 11-digit NDC (5-4-2), text with leading zeros.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_match_regex:
+              arguments:
+                regex: "^[0-9]{11}$"
+      - name: as_of_date
+        description: Weekly publication date (a Wednesday).
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: "cast('2013-01-01' as date)"
+                max_value: "current_date + 7"
+      - name: effective_date
+        description: Date the rate became effective.
+        data_tests:
+          - not_null
+      - name: ndc_description
+        data_tests:
+          - not_null
+      - name: pricing_unit
+        description: "{{ doc('nadac_pricing_unit') }}"
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [EA, ML, GM]
+      - name: pharmacy_type_indicator
+        description: C/I = chain and independent pharmacies.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [C/I]
+              config:
+                severity: warn
+      - name: rate_setting_class
+        description: G generic, B brand, B-ANDA brand on an ANDA, B-BIO biosimilar brand.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [G, B, B-ANDA, B-BIO]
+      - name: explanation_codes
+        description: Comma-separated explanation codes, e.g. "1, 5". Splitting them is a TODO.
+      - name: is_otc
+        description: True for over-the-counter drugs.
+        data_tests:
+          - not_null
+      - name: is_brand
+        description: True when rate_setting_class starts with B.
+      - name: nadac_per_unit
+        description: Dollars per pricing unit.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 100000
+                strictly: true
+      - name: corresponding_generic_nadac_per_unit
+        description: For a brand, the NADAC per unit of its generic equivalent.
+      - name: corresponding_generic_effective_date
+      - name: _source_file
+      - name: _loaded_at
+
+unit_tests:
+  - name: test_stg_nadac__weekly_parses_and_pads
+    description: >
+      Dates are MM/DD/YYYY text in RAW, NDCs can lose leading zeros if someone opens the CSV
+      in Excel, OTC is Y/N and blank strings must become nulls.
+    model: stg_nadac__weekly
+    given:
+      - input: source('nadac', 'weekly')
+        rows:
+          - {ndc: "3089421", ndc_description: "ELIQUIS 5 MG TABLET", nadac_per_unit: "10.12345",
+             effective_date: "12/17/2025", as_of_date: "01/07/2026", pricing_unit: "ea", otc: "N",
+             classification_for_rate_setting: "B", corresponding_generic_drug_nadac_per_unit: "",
+             corresponding_generic_drug_effective_date: ""}
+    expect:
+      rows:
+        - {ndc_11: "00003089421", effective_date: 2025-12-17, as_of_date: 2026-01-07,
+           pricing_unit: "EA", is_otc: false, is_brand: true, nadac_per_unit: 10.12345,
+           corresponding_generic_nadac_per_unit: null, corresponding_generic_effective_date: null}

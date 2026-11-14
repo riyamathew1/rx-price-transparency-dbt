@@ -5,7 +5,6 @@ data/**/*.csv
 data/**/*.txt
 data/**/*.zip
 data/**/*.parquet
-!tests/fixtures/*.csv
 *.duckdb
 *.duckdb.wal
 
