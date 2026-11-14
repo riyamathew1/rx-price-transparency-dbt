@@ -1,0 +1,34 @@
+# TODO (Week 3, Fri Dec 4, PLAN.md): semantic layer and metrics (MetricFlow).
+#
+# Everything below is commented out so `dbt build` passes until the marts exist.
+# Uncomment and finish it once fct_medicaid_utilization and mart_reimbursement_vs_nadac build.
+#
+# Run locally (dbt Core, free):  pip install dbt-metricflow  (pin it in requirements.txt)
+#   mf validate-configs
+#   mf query --metrics medicaid_spend,gap_share --group-by metric_time__quarter,state
+# The hosted dbt Semantic Layer API needs a paid dbt Cloud plan: skip it and say so in the README.
+#
+# Definition of done
+#   [ ] a time spine model (dbt 1.9+: models/marts/core/time_spine_daily.sql + YAML `time_spine:`)
+#   [ ] semantic models on fct_medicaid_utilization and mart_reimbursement_vs_nadac with entities,
+#       dimensions (state, drug, quarter) and measures
+#   [ ] metrics: simple (medicaid_spend, units_reimbursed), ratio (gap_share = gap / nadac cost),
+#       derived (avg reimbursed per unit), cumulative or offset (quarter-over-quarter change)
+#   [ ] `mf validate-configs` passes; two `mf query` outputs pasted in the README
+#
+# semantic_models:
+#   - name: medicaid_utilization
+#     model: ref('fct_medicaid_utilization')
+#     defaults:
+#       agg_time_dimension: quarter_start_date
+#     entities:
+#       - name: TODO
+#         type: primary
+#     dimensions:
+#       - name: TODO
+#     measures:
+#       - name: TODO
+#
+# metrics:
+#   - name: TODO
+#     type: simple

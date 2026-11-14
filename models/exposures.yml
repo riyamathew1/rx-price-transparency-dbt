@@ -1,0 +1,21 @@
+# TODO (Week 4, Mon Dec 7, PLAN.md): declare downstream uses so they appear in the lineage graph.
+#
+# Definition of done
+#   [ ] exposure for the Tableau Public dashboard (type: dashboard, url, owner, depends_on the marts)
+#   [ ] exposure for the event-study notebook (type: analysis)
+#   [ ] both visible in `dbt docs serve` lineage; screenshot in the README
+#
+# Commented out until the marts it depends on exist (an exposure on a disabled model fails to parse).
+#
+# exposures:
+#   - name: rx_price_transparency_dashboard
+#     label: Rx Price Transparency (Tableau Public)
+#     type: dashboard
+#     maturity: medium
+#     url: https://public.tableau.com/app/profile/TODO
+#     owner:
+#       name: Riya Mathew
+#     depends_on:
+#       - ref('mart_reimbursement_vs_nadac')
+#       - ref('mart_generic_entry_panel')
+#       - ref('fct_nadac_price_history')

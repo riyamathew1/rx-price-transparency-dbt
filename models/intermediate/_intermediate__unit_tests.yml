@@ -1,0 +1,19 @@
+# TODO (Week 1, Tue Nov 17 and Week 2, Mon Nov 23, PLAN.md): unit tests (dbt 1.8+).
+# See the worked example in models/staging/nadac/_nadac__models.yml (test_stg_nadac__weekly_parses_and_pads).
+#
+# Definition of done
+#   [ ] normalize_ndc_to_11: one input row per layout (4-4-2, 5-3-2, 5-4-1), an 11-digit value,
+#       a null and a malformed value, tested through stg_fda_ndc__packages
+#   [ ] int_nadac__price_changes: 4 weekly rows with the same rate + 1 change -> 2 output rows
+#   [ ] fct_nadac_price_history: valid_to of row 1 equals valid_from of row 2; last row is_current
+#
+# unit_tests:
+#   - name: test_ndc_normalization_layouts
+#     model: stg_fda_ndc__packages
+#     given:
+#       - input: source('fda_ndc', 'package')
+#         rows:
+#           - {ndcpackagecode: "0093-5056-98"}
+#     expect:
+#       rows:
+#         - {ndc_11: "TODO"}
