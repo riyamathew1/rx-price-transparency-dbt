@@ -1,0 +1,8 @@
+target/
+dbt_packages/
+logs/
+.venv/
+# Snowflake admin scripts are not dbt models (different dialect, PUT commands).
+snowflake/
+# Macros are Jinja-heavy; linting their rendered SQL happens through the models that call them.
+macros/

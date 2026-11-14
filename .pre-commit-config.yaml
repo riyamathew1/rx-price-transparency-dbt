@@ -1,0 +1,42 @@
+# Install once:  pre-commit install
+# Run on all files:  pre-commit run --all-files
+# The sqlfluff hook uses the dbt templater, so run `dbt deps` once first (it reads dbt_packages/).
+# After the first install of hook environments it works offline.
+default_language_version:
+  python: python3.12
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^tests/fixtures/   # fixtures keep the source files' exact bytes
+      - id: end-of-file-fixer
+        exclude: ^tests/fixtures/
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=500"]       # raw data belongs in data/raw (git-ignored), not in git
+      - id: detect-private-key      # Snowflake key pairs must never be committed
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 4.5.0
+    hooks:
+      - id: sqlfluff-lint
+        additional_dependencies:
+          - sqlfluff-templater-dbt==4.5.0
+          - dbt-core==1.12.7
+          - dbt-duckdb==1.11.1
+          - duckdb==2.0.0
+        files: ^(models|analyses|snapshots|tests/singular)/.*\.sql$
+
+  - repo: local
+    hooks:
+      - id: no-raw-data
+        name: block files under data/raw
+        entry: "Raw data must not be committed (data/raw is re-downloadable with ingest/)."
+        language: fail
+        files: ^data/raw/
