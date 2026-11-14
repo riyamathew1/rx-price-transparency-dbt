@@ -1,0 +1,43 @@
+name: rx_price_transparency
+version: "0.1.0"
+config-version: 2
+profile: rx_price_transparency
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets: ["target", "dbt_packages", "logs"]
+
+vars:
+  # Weekly NADAC rows are published on Wednesdays. Used by TODO models.
+  nadac_first_year: 2024
+  # Jan 1, 2026: first Medicare negotiated prices (IPAY 2026) took effect.
+  mfp_ipay_2026_effective_date: "2026-01-01"
+
+models:
+  rx_price_transparency:
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table
+
+snapshots:
+  rx_price_transparency:
+    +schema: snapshots
+
+seeds:
+  rx_price_transparency:
+    +schema: seeds
+
+tests:
+  rx_price_transparency:
+    +store_failures: false

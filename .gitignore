@@ -1,0 +1,42 @@
+# --- data: never commit downloaded files (they are large; re-download with ingest/) ---
+data/raw/
+data/exports/
+data/**/*.csv
+data/**/*.txt
+data/**/*.zip
+data/**/*.parquet
+!tests/fixtures/*.csv
+*.duckdb
+*.duckdb.wal
+
+# --- dbt ---
+target/
+dbt_packages/
+logs/
+.user.yml
+
+# --- secrets: profiles.yml in this repo only uses env_var(); anything else stays local ---
+.env
+.env.*
+!.env.example
+profiles.local.yml
+**/.dbt/
+*.p8
+*.pem
+*.key
+rsa_key*
+
+# --- python / editors ---
+.venv/
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.sqlfluff-cache/
+.DS_Store
+.vscode/
+.idea/
+
+# --- tableau extracts and notebook outputs ---
+*.hyper
+*.twbx

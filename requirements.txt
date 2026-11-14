@@ -1,0 +1,10 @@
+# Pinned so CI, the laptop and the Snowflake runs all use the same versions.
+# Python 3.12 is what CI uses (3.10-3.13 should work).
+dbt-core==1.12.7
+dbt-duckdb==1.11.1
+dbt-snowflake==1.12.5
+duckdb==2.0.0
+sqlfluff==4.5.0
+sqlfluff-templater-dbt==4.5.0
+pre-commit==4.7.0
+requests==2.34.2

@@ -1,0 +1,54 @@
+# Safe to commit: every secret comes from an environment variable, never this file.
+# dbt reads profiles.yml from the current directory first, so run dbt from the repo root.
+#
+#   dbt build                          -> DuckDB file rx.duckdb (free, default)
+#   dbt build --target snowflake       -> Snowflake with key-pair auth (recommended)
+#   dbt build --target snowflake_password
+#
+# Copy .env.example to .env, fill it in, and `set -a; source .env; set +a`.
+# .env is git-ignored. In GitHub Actions the same names come from repository secrets.
+rx_price_transparency:
+  target: "{{ env_var('DBT_TARGET', 'duckdb') }}"
+  outputs:
+    duckdb:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', 'rx.duckdb') }}"
+      schema: dev
+      threads: 4
+
+    # CI: tiny committed fixtures from tests/fixtures, loaded by ingest/load_duckdb.py --fixtures
+    ci:
+      type: duckdb
+      path: ci.duckdb
+      schema: ci
+      threads: 4
+
+    snowflake:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH') }}"
+      private_key_passphrase: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PASSPHRASE', '') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'RX_TRANSFORMER') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'RX_WH') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE', 'RX_PRICES') }}"
+      schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'DEV') }}"
+      threads: 4
+      client_session_keep_alive: false
+      query_tag: rx_price_transparency_dbt
+
+    # Password sign-in. Snowflake is phasing out single-factor passwords, so you may
+    # need SNOWFLAKE_AUTHENTICATOR=username_password_mfa (with an MFA app) or key-pair.
+    snowflake_password:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      authenticator: "{{ env_var('SNOWFLAKE_AUTHENTICATOR', 'snowflake') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'RX_TRANSFORMER') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'RX_WH') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE', 'RX_PRICES') }}"
+      schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'DEV') }}"
+      threads: 4
+      client_session_keep_alive: false
+      query_tag: rx_price_transparency_dbt
