@@ -20,6 +20,7 @@ sources:
             description: Labeler-product part of the NDC, e.g. 0003-0894.
           - name: producttypename
           - name: proprietaryname
+          - name: proprietarynamesuffix
           - name: nonproprietaryname
           - name: dosageformname
           - name: routename

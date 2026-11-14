@@ -1,0 +1,7 @@
+-- snowflake/teardown.sql: remove everything setup.sql created (for example after the trial,
+-- or to start over). Destructive: read it before running. Run as ACCOUNTADMIN.
+-- drop database if exists rx_prices;
+-- drop warehouse if exists rx_wh;
+-- drop resource monitor if exists rx_monitor;
+-- drop user if exists rx_ci;
+-- drop role if exists rx_transformer;
