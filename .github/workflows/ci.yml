@@ -1,0 +1,129 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_snowflake:
+        description: "Also run the Snowflake slim-CI job (needs the SNOWFLAKE_* secrets; trial ends ~Dec 3, 2026)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  DBT_PROFILES_DIR: .   # profiles.yml in the repo root only reads env vars
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Free, no secrets: lint + dbt build on DuckDB against the committed fixtures.
+  # ---------------------------------------------------------------------------
+  duckdb:
+    name: lint + dbt build (DuckDB fixtures)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: dbt deps
+        run: dbt deps
+
+      - name: Load fixtures into DuckDB (raw schema)
+        run: python ingest/load_duckdb.py --fixtures --db ci.duckdb
+
+      - name: dbt build (target ci)
+        run: dbt build --target ci
+
+      - name: sqlfluff lint
+        run: sqlfluff lint models analyses snapshots tests/singular
+
+      - name: Upload dbt artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-target-duckdb
+          path: |
+            target/manifest.json
+            target/run_results.json
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # TODO (PLAN.md week 2, Sun Nov 29): Snowflake slim CI.
+  # Manual only for now. Builds just the models changed in this branch (and their
+  # children) into a throwaway PR_<run> schema, deferring unchanged parents to prod.
+  #
+  # Repository secrets it expects (Settings > Secrets and variables > Actions):
+  #   SNOWFLAKE_ACCOUNT, SNOWFLAKE_USER, SNOWFLAKE_PRIVATE_KEY,
+  #   SNOWFLAKE_PRIVATE_KEY_PASSPHRASE (optional), SNOWFLAKE_ROLE,
+  #   SNOWFLAKE_WAREHOUSE, SNOWFLAKE_DATABASE
+  #
+  # Remaining TODOs:
+  #   [ ] a deploy job on push to main that runs `dbt build --target snowflake` with
+  #       SNOWFLAKE_SCHEMA=PROD and uploads target/manifest.json as the "prod-manifest" artifact
+  #   [ ] download that artifact here into prod-artifacts/ (e.g. dawidd6/action-download-artifact)
+  #   [ ] switch the trigger from workflow_dispatch to pull_request once it is green
+  #   [ ] a cleanup step that drops the PR schemas when the PR closes
+  # ---------------------------------------------------------------------------
+  snowflake-slim-ci:
+    name: dbt slim CI (Snowflake)
+    if: github.event_name == 'workflow_dispatch' && inputs.run_snowflake
+    needs: duckdb
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+      SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+      SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+      SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+      SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+      SNOWFLAKE_SCHEMA: PR_${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - run: pip install -r requirements.txt
+
+      - name: Write the private key to a temp file (never echoed)
+        env:
+          SNOWFLAKE_PRIVATE_KEY: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$SNOWFLAKE_PRIVATE_KEY" > "$RUNNER_TEMP/sf_key.p8"
+          echo "SNOWFLAKE_PRIVATE_KEY_PATH=$RUNNER_TEMP/sf_key.p8" >> "$GITHUB_ENV"
+
+      - run: dbt deps
+
+      - name: dbt debug (connection check)
+        run: dbt debug --target snowflake
+
+      # TODO: replace with the slim build once prod-artifacts/ is downloaded:
+      #   dbt build --target snowflake --select state:modified+ --defer --state prod-artifacts/
+      - name: dbt build (full, until slim CI is wired)
+        run: dbt build --target snowflake
+
+      - name: Remove the key file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sf_key.p8"
