@@ -22,9 +22,27 @@
       - The custom generic test `is_valid_ndc_11` passes on every model that outputs an NDC.
       - Works on DuckDB and Snowflake (hint: split_part, lpad, regexp functions exist in both;
         if a function differs, use adapter.dispatch like macros/parse_mdy_date.sql).
-
-    Delete the exception below once you implement it.
 -#}
 {% macro normalize_ndc_to_11(column_name) -%}
-    {{ exceptions.raise_compiler_error("TODO: implement normalize_ndc_to_11 (see PLAN.md week 1)") }}
+    case
+        when {{ column_name }} is null then null
+        when regexp_matches({{ column_name }}, '^[0-9]{11}$') then {{ column_name }}
+        when regexp_matches({{ column_name }}, '^[0-9]{4}-[0-9]{4}-[0-9]{2}$')
+            then lpad(split_part({{ column_name }}, '-', 1), 5, '0')
+              || split_part({{ column_name }}, '-', 2)
+              || split_part({{ column_name }}, '-', 3)
+        when regexp_matches({{ column_name }}, '^[0-9]{5}-[0-9]{3}-[0-9]{2}$')
+            then split_part({{ column_name }}, '-', 1)
+              || lpad(split_part({{ column_name }}, '-', 2),4,'0')
+              || split_part({{ column_name }}, '-', 3)
+        when regexp_matches({{ column_name }}, '^[0-9]{5}-[0-9]{4}-[0-9]{1}$')
+            then split_part({{ column_name }}, '-', 1)
+              || split_part({{ column_name }}, '-', 2)
+              || lpad(split_part({{ column_name }}, '-', 3),2,'0')
+        when regexp_matches({{ column_name }}, '^[0-9]{5}-[0-9]{4}-[0-9]{2}$')
+            then split_part({{ column_name }}, '-', 1)
+              || split_part({{ column_name }}, '-', 2)
+              || split_part({{ column_name }}, '-', 3)
+        else null
+    end
 {%- endmacro %}
