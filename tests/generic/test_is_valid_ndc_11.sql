@@ -10,5 +10,5 @@
 select {{ column_name }}
 from {{ model }}
 where {{ column_name }} is not null
-  and not regexp_matches({{ column_name }}, '^[0-9]{11}$')
+  and not {{ regex_full_match(column_name, '^[0-9]{11}$') }}
 {% endtest %}

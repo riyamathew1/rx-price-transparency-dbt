@@ -26,20 +26,20 @@
 {% macro normalize_ndc_to_11(column_name) -%}
     case
         when {{ column_name }} is null then null
-        when regexp_matches({{ column_name }}, '^[0-9]{11}$') then {{ column_name }}
-        when regexp_matches({{ column_name }}, '^[0-9]{4}-[0-9]{4}-[0-9]{2}$')
+        when {{ regex_full_match(column_name, '^[0-9]{11}$') }} then {{ column_name }}
+        when {{ regex_full_match(column_name, '^[0-9]{4}-[0-9]{4}-[0-9]{2}$') }}
             then lpad(split_part({{ column_name }}, '-', 1), 5, '0')
               || split_part({{ column_name }}, '-', 2)
               || split_part({{ column_name }}, '-', 3)
-        when regexp_matches({{ column_name }}, '^[0-9]{5}-[0-9]{3}-[0-9]{2}$')
+        when {{ regex_full_match(column_name, '^[0-9]{5}-[0-9]{3}-[0-9]{2}$') }}
             then split_part({{ column_name }}, '-', 1)
               || lpad(split_part({{ column_name }}, '-', 2),4,'0')
               || split_part({{ column_name }}, '-', 3)
-        when regexp_matches({{ column_name }}, '^[0-9]{5}-[0-9]{4}-[0-9]{1}$')
+        when {{ regex_full_match(column_name, '^[0-9]{5}-[0-9]{4}-[0-9]{1}$') }}
             then split_part({{ column_name }}, '-', 1)
               || split_part({{ column_name }}, '-', 2)
               || lpad(split_part({{ column_name }}, '-', 3),2,'0')
-        when regexp_matches({{ column_name }}, '^[0-9]{5}-[0-9]{4}-[0-9]{2}$')
+        when {{ regex_full_match(column_name, '^[0-9]{5}-[0-9]{4}-[0-9]{2}$') }}
             then split_part({{ column_name }}, '-', 1)
               || split_part({{ column_name }}, '-', 2)
               || split_part({{ column_name }}, '-', 3)
