@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: stg_fda_ndc__packages
+    description: >
+      FDA NDC Directory packages, cleaned. Grain: one row per package NDC.
+      Keeps the 10-digit code as delivered and adds the 11-digit 5-4-2 form.
+    columns:
+      - name: productid
+        description: FDA product id; joins to stg_fda_ndc__products.
+        data_tests:
+          - not_null
+      - name: ndc_10_hyphenated
+        description: Package NDC exactly as the FDA delivers it, e.g. 0003-0894-21.
+        data_tests:
+          - not_null
+          - unique
+      - name: ndc_11
+        description: 11-digit NDC (5-4-2), text with leading zeros, from normalize_ndc_to_11.
+        data_tests:
+          - not_null
+          - unique
+          - is_valid_ndc_11
+      - name: ndc_layout
+        description: Which 10-digit layout the FDA used.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['4-4-2', '5-3-2', '5-4-1']
